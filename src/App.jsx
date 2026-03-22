@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PenTool, Star, Volume2, Loader2, ArrowRight, Check, X, ChevronRight, Monitor, Cloud, Image as ImageIcon } from 'lucide-react';
+import { PenTool, Star, Volume2, Loader2, ArrowRight, Check, X, ChevronRight, Monitor, Cloud, Image as ImageIcon, Printer } from 'lucide-react';
 
 // API Key setup (사용자 지정 하드코딩 키)
 const activeApiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCBcvB0Ka5sBW26jcykaWF9x-xeyIxQ7LU";
@@ -72,7 +72,7 @@ export default function App() {
       return;
     }
     if (!activeApiKey) {
-      setError('앗! गु글 Gemini API 키가 설정되지 않았습니다.');
+      setError('앗! 구글 Gemini API 키가 설정되지 않았습니다.');
       return;
     }
     setError('');
@@ -80,16 +80,16 @@ export default function App() {
 
     let detailPrompt = "";
     if (detailLevel === '일반') {
-      detailPrompt = "[일반 모드]: 일반적인 수준의 꼼꼼한 수업입니다. 지문의 핵심이 되는 단어, 숙어, 문법 표현들을 10~15개 이상 넉넉하게 추출하여 설명하세요.";
+      detailPrompt = "[일반 모드]: 일반적인 수준의 꼼꼼한 수업입니다. 지문의 핵심이 되는 단어 및 숙어(idiom) 표현들을 10~15개 이상 넉넉하게 추출하여 설명하세요.";
     } else if (detailLevel === '자세히') {
-      detailPrompt = "[자세히 모드]: 일반 모드의 **2배 분량(20~30개 이상)**으로 훨씬 더 많은 단어를 추출하세요! 학생이 놓치기 쉬운 세세한 뉘앙스와 작은 표현들까지 무조건 전부 포함해서 샅샅이 파헤쳐주세요.";
+      detailPrompt = "[자세히 모드]: 일반 모드의 **2배 분량(20~30개 이상)**으로 훨씬 더 많은 영단어와 숙어를 추출하세요! 학생이 놓치기 쉬운 세세한 뉘앙스와 작은 표현들까지 무조건 전부 포함해서 샅샅이 파헤쳐주세요.";
     } else {
-      detailPrompt = "[아주 자세히 모드]: 일반 모드의 **4배 분량(40~50개 이상)**으로 거의 모든 단어를 융단폭격하듯 폭발적으로 많이 추출해야 합니다! 지문에 쓰인 모든 단어와 숙어, 전치사, 관용구, 문장 구조를 낱낱이 분해해서 극도로 방대하고 치밀하게 모두 설명하세요. 설명이 길어지거나 토큰을 많이 소모하는 것을 절대 두려워하지 마세요. 양이 매우 많아야 만족합니다.";
+      detailPrompt = "[아주 자세히 모드]: 일반 모드의 **4배 분량(40~50개 이상)**으로 단어를 폭발적으로 많이 엄청나게 쏟아내듯 역대급으로 대량 추출하세요! 지문에 쓰인 모든 핵심 단어뿐만 아니라, **숙어(idioms), 구동사(phrasal verbs), 자주 쓰이는 전치사구, 핵심 문장 구조까지** 하나도 빠짐없이 낱낱이 분해해서 극도로 방대하고 치밀하게 모두 설명하세요. 길이 제한이나 토큰 걱정은 절대 하지 마시고, 양이 넘치고 어마어마하게 많아야 학생이 만족합니다!!! 생략은 절대 금지합니다.";
     }
 
     const systemPrompt = `
       당신은 학생들을 진심으로 아끼고 열정적인 영어 선생님입니다. 
-      대상 학생의 수준은 [${targetLevel}]입니다. 이 수준의 학생이 모를 만한 단어나 알아두면 좋은 어휘를 우선적으로 집요하게 타겟팅하세요.
+      대상 학생의 수준은 [${targetLevel}]입니다. 이 수준의 학생이 모를 만한 단어나 숙어, 구문들을 끈질기고 집요하게 전부 타겟팅하세요. 단어(Vocabulary) 분만 아니라 두 단어 이상의 숙어(Idiom)도 반드시 대량으로 포함하세요!
       말투는 아주 친절하고 다정하게, 공책에 펜으로 꼼꼼히 적어주는 듯한 과외 선생님 체("~해요", "~란다")를 사용하세요.
       
       주어진 영어 지문을 분석하세요.
@@ -98,16 +98,16 @@ export default function App() {
       
       전체 지문을 문장 단위로 나누어 자연스럽고 친절한 한국어 해석을 함께 제공하세요.
 
-      결과는 반드시 아래 JSON 형식으로만 출력해야 합니다.
+      결과는 반드시 아래 JSON 형식으로만 완벽하게 출력해야 합니다.
       {
         "items": [
           {
-            "phrase": "지문에서 추출한 정확한 영어 단어 또는 구문 (대소문자 일치 필수)",
-            "type": "vocabulary" 또는 "grammar" 또는 "idiom",
-            "title": "설명 창 제목 (예: 'take for granted (당연히 여기다)')",
-            "explanation": "선생님의 다정한 설명 (뉘앙스나 중요도 위주)",
-            "etymology": "어원이나 기본 원리 (없으면 생략 가능)",
-            "synonyms": "비슷한 말 (예: assume, presume)",
+            "phrase": "지문에서 추출한 정확한 영어 단어 또는 숙어/구조 (대소문자 본문 일치 필수)",
+            "type": "vocabulary 혹은 idiom 혹은 grammar",
+            "title": "설명 창 제목 (예: 'take for granted (숙어: 당연히 여기다)')",
+            "explanation": "선생님의 아주 다정한 설명 (뉘앙스나 중요도 위주)",
+            "etymology": "어원 분석이나 학생이 쉽게 외울 수 있는 직관적인 암기 팁 (※ 필수 작성란입니다! 어원이 없다면 연상 암기법이나 유래라도 무조건 1줄 이상 지어내서라도 작성하세요. 절대 비워두지 마세요.)",
+            "synonyms": "비슷한 말이나 반대말 (예: assume, presume)",
             "realWorld": "실제 원어민 활용 팁",
             "exampleEn": "이해를 돕는 예문",
             "exampleKo": "예문 한국어 뜻"
@@ -446,15 +446,15 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen py-8 px-4 sm:px-8 ${containerWidth} mx-auto relative font-sans text-ink-blue transition-all duration-300`}>
-      {/* 아날로그 공책 왼쪽 붉은색 여백 선장식 */}
-      <div className="fixed left-8 sm:left-14 top-0 bottom-0 w-px bg-ink-red opacity-40 z-0"></div>
-      <div className="fixed left-10 sm:left-16 top-0 bottom-0 w-px bg-ink-red opacity-20 z-0"></div>
+    <div className={`min-h-screen py-8 px-4 sm:px-8 ${containerWidth} mx-auto relative font-sans text-ink-blue transition-all duration-300 print:bg-white print:w-full print:max-w-none print:p-0 print:m-0`}>
+      {/* 아날로그 공책 왼쪽 붉은색 여백 선장식 (출력시 숨김) */}
+      <div className="fixed left-8 sm:left-14 top-0 bottom-0 w-px bg-ink-red opacity-40 z-0 print:hidden"></div>
+      <div className="fixed left-10 sm:left-16 top-0 bottom-0 w-px bg-ink-red opacity-20 z-0 print:hidden"></div>
 
       {/* 메인 랩퍼 - 마진선 오른쪽으로 정렬 */}
-      <div className="relative z-10 pl-12 sm:pl-20">
+      <div className="relative z-10 pl-12 sm:pl-20 print:pl-0 print:text-black">
         
-        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-4 border-ink-red/30 pb-4">
+        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-4 border-ink-red/30 pb-4 print:hidden">
           <div>
             <h1 className="font-hand text-5xl sm:text-6xl font-bold flex items-center gap-3 text-ink-blue transform -rotate-1">
               <PenTool size={42} className="text-ink-red" />
@@ -497,7 +497,7 @@ export default function App() {
         </header>
 
         {step === 'input' && (
-          <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+          <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10 print:hidden">
             
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="flex-1">
@@ -570,134 +570,197 @@ export default function App() {
         )}
 
         {step === 'loading' && (
-          <div className="py-32 flex flex-col items-center justify-center space-y-6 animate-in fade-in">
+          <div className="py-32 flex flex-col items-center justify-center space-y-6 animate-in fade-in print:hidden">
             <Loader2 size={64} className="animate-spin text-ink-red" />
             <h2 className="font-hand text-4xl font-bold text-ink-blue">선생님이 지문을 꼼꼼히 읽어보는 중...</h2>
-            <p className="font-hand text-2xl text-gray-500">[{targetLevel}] 학생 수준에 맞는 [{detailLevel}] 강도로 밑줄을 긋고 있어요!</p>
+            <p className="font-hand text-2xl text-gray-500">[{targetLevel}] 학생 수준에 맞춰 숙어와 어원을 샅샅이 파헤치고 있어요!</p>
           </div>
         )}
 
         {step === 'study' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col xl:flex-row gap-12 items-start">
-            
-            {/* 왼쪽: 본문 지문 */}
-            <div className="w-full xl:w-[55%] space-y-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-hand text-4xl font-bold text-ink-red underline decoration-ink-red decoration-wavy underline-offset-8">
-                  오늘의 지문
-                </h2>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => setShowTranslation(!showTranslation)}
-                    className="rough-border px-4 py-2 font-hand text-2xl hover:bg-ink-blue hover:text-white transition-colors bg-white cursor-pointer"
-                  >
-                    {showTranslation ? '해석 가리기' : '해석 보기'}
-                  </button>
-                  <button
-                    onClick={resetToStart}
-                    className="font-hand text-xl text-gray-500 hover:text-ink-blue underline self-end cursor-pointer"
-                  >
-                    새 지문 입력
-                  </button>
+          <>
+            {/* === 웹 화면용 인터랙티브 레이아웃 (프린트시 숨김) === */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col xl:flex-row gap-12 items-start print:hidden">
+              
+              {/* 왼쪽: 본문 지문 */}
+              <div className="w-full xl:w-[55%] space-y-6">
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+                  <h2 className="font-hand text-4xl font-bold text-ink-red underline decoration-ink-red decoration-wavy underline-offset-8">
+                    오늘의 지문
+                  </h2>
+                  <div className="flex flex-wrap gap-2 md:gap-4">
+                    <button 
+                      onClick={() => setShowTranslation(!showTranslation)}
+                      className="rough-border px-4 py-2 font-hand text-2xl hover:bg-ink-blue hover:text-white transition-colors bg-white cursor-pointer"
+                    >
+                      {showTranslation ? '해석 가리기' : '해석 보기'}
+                    </button>
+                    <button 
+                      onClick={() => window.print()}
+                      className="rough-border-red px-4 py-2 font-hand text-2xl text-ink-red hover:bg-ink-red hover:text-white transition-colors bg-white cursor-pointer flex items-center gap-2"
+                    >
+                      <Printer size={20} /> 수업자료 인쇄
+                    </button>
+                    <button
+                      onClick={resetToStart}
+                      className="font-hand text-xl text-gray-500 hover:text-ink-blue underline self-end cursor-pointer pb-1 ml-2"
+                    >
+                      새 지문
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  {sentences.map((sent, idx) => (
+                    <div key={idx} className="flex items-start gap-4 border-b-2 border-dashed border-gray-300 pb-8 mb-8">
+                      <button
+                        onClick={(e) => speak(sent.en, e)}
+                        disabled={isPlayingAudio}
+                        className={`mt-2 cursor-pointer flex-shrink-0 transition-colors bg-white rounded-full p-2 rough-border hover:bg-ink-blue hover:text-white ${isPlayingAudio ? 'text-gray-400 opacity-50' : 'text-ink-blue'}`}
+                        title="이 문장 전체 발음 듣기"
+                      >
+                        {isPlayingAudio ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
+                      </button>
+                      <div className="flex-1">
+                        <p className="font-sans text-[22px] tracking-normal leading-[48px] mb-3 text-gray-900 font-medium">
+                          {renderHighlightedSentence(sent.en)}
+                        </p>
+                        {showTranslation && (
+                          <div className="mt-3 text-gray-700 bg-white/90 rough-border-gray p-4 inline-block animate-in fade-in slide-in-from-top-2 duration-300 transform -rotate-1">
+                            <span className="font-sans text-lg whitespace-pre-wrap leading-[32px]">{sent.ko}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-6">
-                {sentences.map((sent, idx) => (
-                  <div key={idx} className="flex items-start gap-4 border-b-2 border-dashed border-gray-300 pb-8 mb-8">
-                    <button
-                      onClick={(e) => speak(sent.en, e)}
-                      disabled={isPlayingAudio}
-                      className={`mt-2 cursor-pointer flex-shrink-0 transition-colors bg-white rounded-full p-2 rough-border hover:bg-ink-blue hover:text-white ${isPlayingAudio ? 'text-gray-400 opacity-50' : 'text-ink-blue'}`}
-                      title="이 문장 전체 발음 듣기"
-                    >
-                      {isPlayingAudio ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
-                    </button>
-                    <div className="flex-1">
-                      <p className="font-sans text-[22px] tracking-normal leading-[48px] mb-3 text-gray-900 font-medium">
-                        {renderHighlightedSentence(sent.en)}
-                      </p>
-                      {showTranslation && (
-                        <div className="mt-3 text-gray-700 bg-white/90 rough-border-gray p-4 inline-block animate-in fade-in slide-in-from-top-2 duration-300 transform -rotate-1">
-                          <span className="font-sans text-lg whitespace-pre-wrap leading-[32px]">{sent.ko}</span>
+              {/* 오른쪽: 여백 주석(설명) */}
+              <div className="w-full xl:w-[45%] rough-border p-6 sm:p-8 xl:sticky xl:top-8 bg-paper/90 shadow-sm">
+                <h3 className="font-hand text-4xl font-bold mb-6 text-ink-red flex items-center gap-2">
+                  <PenTool /> 핵심 콕콕!
+                </h3>
+                
+                {activeItem ? (
+                  <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="text-2xl font-bold bg-ink-red text-white px-3 py-1 inline-block mb-4 transform -rotate-2 shadow-sm">
+                      {activeItem.phrase}
+                      <span className="ml-2 text-sm font-normal bg-white/20 px-2 py-0.5 rounded-full inline-block align-middle pb-1">
+                        {activeItem.type === 'idiom' ? '숙어/관용구' : activeItem.type === 'grammar' ? '문법구조' : '필수단어'}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-4 font-sans text-lg">
+                      <p className="font-bold marker-highlight inline-block text-xl leading-pitch">{activeItem.title}</p>
+                      <p className="text-gray-800 leading-pitch">{activeItem.explanation}</p>
+                      
+                      {(activeItem.etymology || activeItem.synonyms) && (
+                        <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-300 space-y-3">
+                          {activeItem.etymology && (
+                            <p className="text-gray-600 leading-pitch border-l-4 border-ink-blue pl-3">
+                              <strong className="font-hand text-2xl text-ink-blue">어원/암기팁: </strong> 
+                              {activeItem.etymology}
+                            </p>
+                          )}
+                          {activeItem.synonyms && (
+                            <p className="text-gray-600 leading-pitch">
+                              <strong className="font-hand text-2xl text-ink-red">유의어: </strong> 
+                              {activeItem.synonyms}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {activeItem.exampleEn && (
+                        <div className="mt-6 p-4 rough-border-gray bg-gray-50/50 space-y-2 transform rotate-1">
+                          <p className="font-sans text-xl font-medium text-ink-blue leading-snug text-center">
+                            "{activeItem.exampleEn}"
+                          </p>
+                          <p className="text-gray-500 font-sans text-center mt-2">
+                            ↳ {activeItem.exampleKo}
+                          </p>
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="py-20 text-center opacity-60">
+                    <p className="font-hand text-3xl leading-pitch-double">
+                      왼쪽 지문에서 노란색 형광펜이 칠해진<br/>
+                      핵심 단어나 숙어 위로 마우스를 올려보렴!
+                    </p>
+                  </div>
+                )}
+
+                <button 
+                  onClick={generateQuiz}
+                  disabled={isQuizLoading}
+                  className="cursor-pointer mt-12 w-full rough-border-red bg-ink-red text-white py-4 font-hand text-3xl font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isQuizLoading ? <Loader2 size={24} className="animate-spin" /> : <Star size={24} />}
+                  {isQuizLoading ? '쪽지 시험 출제 중...' : '다 외웠어! 복습 쪽지시험 고고'}
+                </button>
+              </div>
+
+            </div>
+
+            {/* === 프린트 출력용 레이아웃 (웹에서는 숨김, 인쇄시 활성화) === */}
+            <div className="hidden print:block font-sans text-black w-full bg-white text-sm pb-20">
+              <h1 className="text-4xl font-bold border-b-4 border-black pb-4 mb-8 text-center tracking-tight">📝 오늘의 영어 리딩 및 핵심 분석 노트</h1>
+              
+              <section className="mb-14">
+                <h2 className="text-2xl font-bold bg-gray-200 p-3 mb-6 inline-block w-full border-l-8 border-gray-600">📖 Part 1. 본문 및 해석</h2>
+                <div className="space-y-6 px-4">
+                  {sentences.map((sent, idx) => (
+                    <div key={idx} className="pb-4 border-b border-gray-300 border-dashed">
+                      <p className="text-xl font-bold text-black leading-relaxed mb-2 tracking-wide">{sent.en}</p>
+                      <p className="text-lg text-gray-700 leading-relaxed font-medium">{sent.ko}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="break-before-page">
+                <h2 className="text-2xl font-bold bg-gray-200 p-3 mb-6 inline-block w-full border-l-8 border-gray-600">🎯 Part 2. 핵심 영단어 및 관용구 (Voca & Idioms)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full px-2">
+                  {analysisResult.map((item, idx) => (
+                    <div key={idx} className="border-2 border-gray-800 p-5 rounded-lg break-inside-avoid shadow-sm flex flex-col h-full">
+                      <h3 className="text-xl font-extrabold text-black mb-3 pb-2 border-b-2 border-gray-200 flex items-center justify-between">
+                        {item.title} 
+                        <span className="text-xs font-bold text-gray-800 bg-gray-200 px-3 py-1 rounded-full">
+                          {item.type === 'idiom' ? '숙어/표현' : item.type === 'grammar' ? '핵심문법' : '필수단어'}
+                        </span>
+                      </h3>
+                      <div className="space-y-3 font-medium text-base flex-1">
+                        <p className="text-gray-900 leading-relaxed"><strong className="text-black bg-gray-200 px-1">선명한 설명:</strong> {item.explanation}</p>
+                        {item.etymology && (
+                          <p className="text-gray-900 leading-relaxed"><strong className="text-black bg-gray-200 px-1">어원/암기팁:</strong> {item.etymology}</p>
+                        )}
+                        {item.synonyms && (
+                          <p className="text-gray-800 leading-relaxed"><strong className="text-black bg-gray-200 px-1">유사어:</strong> {item.synonyms}</p>
+                        )}
+                      </div>
+                      {item.exampleEn && (
+                        <div className="bg-gray-100 p-4 mt-4 rounded-md border border-gray-300 mt-auto">
+                          <p className="font-bold text-lg text-black mb-1 leading-snug">"{item.exampleEn}"</p>
+                          <p className="text-gray-700 text-base leading-snug">↳ {item.exampleKo}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+              
+              <div className="mt-16 pt-4 border-t-2 border-gray-400 text-center text-gray-500 font-bold text-base">
+                <p>본 워크시트는 『AI Teacher's Note』를 통해 학생 수준(Target: {targetLevel})에 맞추어 자동 추출 및 설계되었습니다.</p>
               </div>
             </div>
-
-            {/* 오른쪽: 여백 주석(설명) */}
-            <div className="w-full xl:w-[45%] rough-border p-6 sm:p-8 xl:sticky xl:top-8 bg-paper/90 shadow-sm">
-              <h3 className="font-hand text-4xl font-bold mb-6 text-ink-red flex items-center gap-2">
-                <PenTool /> 핵심 콕콕!
-              </h3>
-              
-              {activeItem ? (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="text-2xl font-bold bg-ink-red text-white px-3 py-1 inline-block mb-4 transform -rotate-2 shadow-sm">
-                    {activeItem.phrase}
-                  </div>
-                  
-                  <div className="space-y-4 font-sans text-lg">
-                    {/* 선생님 설명 영역을 노트 느낌으로 */}
-                    <p className="font-bold marker-highlight inline-block text-xl leading-pitch">{activeItem.title}</p>
-                    <p className="text-gray-800 leading-pitch">{activeItem.explanation}</p>
-                    
-                    {(activeItem.etymology || activeItem.synonyms) && (
-                      <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-300 space-y-3">
-                        {activeItem.etymology && (
-                          <p className="text-gray-600 leading-pitch border-l-4 border-ink-blue pl-3">
-                            <strong className="font-hand text-2xl text-ink-blue">어원/원리: </strong> 
-                            {activeItem.etymology}
-                          </p>
-                        )}
-                        {activeItem.synonyms && (
-                          <p className="text-gray-600 leading-pitch">
-                            <strong className="font-hand text-2xl text-ink-red">유의어: </strong> 
-                            {activeItem.synonyms}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {activeItem.exampleEn && (
-                      <div className="mt-6 p-4 rough-border-gray bg-gray-50/50 space-y-2 transform rotate-1">
-                        <p className="font-sans text-xl font-medium text-ink-blue leading-snug text-center">
-                          "{activeItem.exampleEn}"
-                        </p>
-                        <p className="text-gray-500 font-sans text-center mt-2">
-                          ↳ {activeItem.exampleKo}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="py-20 text-center opacity-60">
-                  <p className="font-hand text-3xl leading-pitch-double">
-                    왼쪽 지문에서 노란색 형광펜이 칠해진<br/>
-                    핵심 단어 위로 마우스를 올려보렴!
-                  </p>
-                </div>
-              )}
-
-              <button 
-                onClick={generateQuiz}
-                disabled={isQuizLoading}
-                className="cursor-pointer mt-12 w-full rough-border-red bg-ink-red text-white py-4 font-hand text-3xl font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isQuizLoading ? <Loader2 size={24} className="animate-spin" /> : <Star size={24} />}
-                {isQuizLoading ? '쪽지 시험 출제 중...' : '다 외웠어! 복습 쪽지시험 고고'}
-              </button>
-            </div>
-
-          </div>
+          </>
         )}
 
         {step === 'quiz' && quizData.length > 0 && (
-          <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+          <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 print:hidden">
             <h2 className="font-hand text-5xl font-bold text-ink-red mb-6 flex items-center gap-3">
               <PenTool size={36} /> 과외 완료 쪽지 시험
               <span className="ml-auto font-sans text-xl bg-ink-red text-white px-4 py-1 rounded-full">
@@ -771,7 +834,7 @@ export default function App() {
         )}
 
         {step === 'quiz_result' && (
-          <div className="max-w-2xl mx-auto mt-12 rough-border-red p-12 bg-paper text-center animate-in zoom-in duration-500 transform rotate-1">
+          <div className="max-w-2xl mx-auto mt-12 rough-border-red p-12 bg-paper text-center animate-in zoom-in duration-500 transform rotate-1 print:hidden">
             <h2 className="text-6xl font-hand font-bold text-ink-red mb-4 underline decoration-wavy">
               채점 결과
             </h2>
