@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme {
+  --font-sans: 'Noto Sans KR', sans-serif;
+  --font-hand: 'Nanum Pen Script', cursive;
+  --font-en-hand: 'Caveat', cursive;
+  
+  --color-ink-blue: #0000CD;
+  --color-ink-red: #FF0000;
+  --color-paper: #FDFBF7;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink-blue);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* 줄 긋기 노트 패턴: 높이 32px 주기로 반복 */
+    background-image: repeating-linear-gradient(transparent, transparent 31px, #CBD5E1 32px);
+    background-origin: content-box;
+    background-attachment: fixed;
+    line-height: 32px;
+  }
+}
+
+/* 필기 / 딱딱하지 않은 도형 느낌의 외곽선 */
+.rough-border {
+  border: 2px solid var(--color-ink-blue);
+  border-radius: 2px 255px 3px 255px / 255px 5px 225px 3px;
+}
+
+.rough-border-red {
+  border: 2px solid var(--color-ink-red);
+  border-radius: 255px 3px 225px 5px / 2px 255px 3px 255px;
+}
+
+.rough-border-gray {
+  border: 2px solid #888;
+  border-radius: 2px 255px 3px 255px / 255px 5px 225px 3px;
+  color: #888;
+}
+
+/* 마커 하이라이트 효과 */
+.marker-highlight {
+  background: linear-gradient(104deg, rgba(253, 255, 50, 0) 0.9%, rgba(253, 255, 50, 0.8) 2.4%, rgba(253, 255, 50, 0.4) 5.8%, rgba(253, 255, 50, 0.8) 93%, rgba(253, 255, 50, 0.3) 96%, rgba(253, 255, 50, 0) 98%);
+  padding: 0 4px;
+}
+
+/* 텍스트 줄 간격을 배경 선 높이(32px)에 맞춤 */
+.leading-pitch {
+  line-height: 32px;
+}
+.leading-pitch-double {
+  line-height: 64px;
+}
