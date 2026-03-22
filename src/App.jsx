@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PenTool, Star, Volume2, Loader2, ArrowRight, Check, X, ChevronRight, Monitor, Cloud, Image as ImageIcon } from 'lucide-react';
 
-// API Key setup
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+// API Key setup (개발 환경의 .env 키가 없을 경우 브라우저 LocalStorage 활용)
 
 export default function App() {
+  const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const activeApiKey = import.meta.env.VITE_GEMINI_API_KEY || userApiKey;
+
   const [step, setStep] = useState('input');
   const [inputText, setInputText] = useState('');
   const [detailLevel, setDetailLevel] = useState('기본');
@@ -66,6 +68,10 @@ export default function App() {
       setError('분석할 영어 지문을 적어주세요!');
       return;
     }
+    if (!activeApiKey) {
+      setError('앗! 위쪽에 구글 Gemini API 키를 입력해주셔야 서비스를 이용할 수 있어요!');
+      return;
+    }
     setError('');
     setStep('loading');
 
@@ -111,7 +117,7 @@ export default function App() {
     `;
 
     try {
-      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`, {
+      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${activeApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,12 +141,13 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      setError('분석 중에 펜이 멈췄어요. 다시 한번 해볼까요?');
+      setError('분석 중에 펜이 멈췄어요. API 키가 정확한지, 혹은 할당량을 초과했는지 확인해주세요!');
       setStep('input');
     }
   };
 
   const generateQuiz = async () => {
+    if (!activeApiKey) return;
     setIsQuizLoading(true);
 
     const learnedPhrases = analysisResult.map(i => i.phrase).join(', ');
@@ -164,7 +171,7 @@ export default function App() {
     `;
 
     try {
-      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`, {
+      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${activeApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -195,6 +202,10 @@ export default function App() {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!activeApiKey) {
+      setError("사진을 분석하려면 먼저 위쪽에 API 키를 붙여넣어주세요!");
+      return;
+    }
 
     setImageFile(file);
     setIsExtractingText(true);
@@ -204,7 +215,7 @@ export default function App() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Data = reader.result.split(',')[1];
-        const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`, {
+        const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${activeApiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -279,7 +290,11 @@ export default function App() {
     window.speechSynthesis.cancel();
     setIsPlayingAudio(true);
 
-    if (ttsMode === 'native') {
+    if (ttsMode === 'native' || !activeApiKey) {
+      if (ttsMode === 'api' && !activeApiKey) {
+        console.warn("API 키가 없어 PC 기본 TTS로 전환합니다.");
+        setTtsMode('native');
+      }
       try {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
@@ -309,7 +324,7 @@ export default function App() {
           },
           model: "gemini-2.5-flash-preview-tts"
         };
-        const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+        const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${activeApiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -474,6 +489,27 @@ export default function App() {
 
         {step === 'input' && (
           <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+            {!import.meta.env.VITE_GEMINI_API_KEY && (
+              <div className="rough-border-gray bg-white/70 p-5 rounded-lg shadow-sm border-l-4 border-ink-red">
+                <label className="block font-sans text-lg font-bold mb-2 text-ink-blue whitespace-pre-wrap leading-relaxed">
+                  🔑 개인용 Google Gemini API Key 연결하기
+                </label>
+                <input
+                  type="password"
+                  value={userApiKey}
+                  onChange={(e) => {
+                    setUserApiKey(e.target.value);
+                    localStorage.setItem('gemini_api_key', e.target.value);
+                  }}
+                  placeholder="AI.Studio에서 발급받은 본인의 API Key 문자열을 붙여넣으세요"
+                  className="rough-border w-full p-3 font-sans text-sm outline-none focus:ring-2 focus:ring-ink-red bg-white"
+                />
+                <p className="text-xs font-sans text-gray-500 mt-2">
+                  ※ 이 키는 통신을 위한 브라우저 내부에만 안전하게 임시 저장되며, 안심하고 사용하셔도 됩니다.
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block font-hand text-3xl font-bold mb-3 flex items-center gap-2">
                 <Star className="text-ink-red" />
@@ -521,7 +557,7 @@ export default function App() {
             <button
               onClick={analyzeText}
               disabled={!inputText.trim() || isExtractingText}
-              className="rough-border bg-ink-blue text-white w-full py-4 font-hand text-4xl font-bold flex items-center justify-center gap-3 hover:bg-blue-800 transition-colors disabled:opacity-50"
+              className="rough-border bg-ink-blue text-white w-full py-4 font-hand text-4xl font-bold flex items-center justify-center gap-3 hover:bg-blue-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
               선생님, 이 지문 과외해주세요! <ArrowRight size={28} />
             </button>
@@ -548,13 +584,13 @@ export default function App() {
                 <div className="flex gap-4">
                   <button 
                     onClick={() => setShowTranslation(!showTranslation)}
-                    className="rough-border px-4 py-2 font-hand text-2xl hover:bg-ink-blue hover:text-white transition-colors bg-white"
+                    className="rough-border px-4 py-2 font-hand text-2xl hover:bg-ink-blue hover:text-white transition-colors bg-white cursor-pointer"
                   >
                     {showTranslation ? '해석 가리기' : '해석 보기'}
                   </button>
                   <button
                     onClick={resetToStart}
-                    className="font-hand text-xl text-gray-500 hover:text-ink-blue underline self-end"
+                    className="font-hand text-xl text-gray-500 hover:text-ink-blue underline self-end cursor-pointer"
                   >
                     새 지문 입력
                   </button>
@@ -567,7 +603,7 @@ export default function App() {
                     <button
                       onClick={(e) => speak(sent.en, e)}
                       disabled={isPlayingAudio}
-                      className={`mt-2 flex-shrink-0 transition-colors bg-white rounded-full p-2 rough-border hover:bg-ink-blue hover:text-white ${isPlayingAudio ? 'text-gray-400 opacity-50' : 'text-ink-blue'}`}
+                      className={`mt-2 cursor-pointer flex-shrink-0 transition-colors bg-white rounded-full p-2 rough-border hover:bg-ink-blue hover:text-white ${isPlayingAudio ? 'text-gray-400 opacity-50' : 'text-ink-blue'}`}
                       title="이 문장 전체 발음 듣기"
                     >
                       {isPlayingAudio ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
@@ -578,7 +614,7 @@ export default function App() {
                       </p>
                       {showTranslation && (
                         <div className="mt-3 text-gray-700 bg-white/90 rough-border-gray p-4 inline-block animate-in fade-in slide-in-from-top-2 duration-300 transform -rotate-1">
-                          <span className="font-sans text-lg whitespace-pre-wrap">{sent.ko}</span>
+                          <span className="font-sans text-lg whitespace-pre-wrap leading-[32px]">{sent.ko}</span>
                         </div>
                       )}
                     </div>
@@ -645,7 +681,7 @@ export default function App() {
               <button 
                 onClick={generateQuiz}
                 disabled={isQuizLoading}
-                className="mt-12 w-full rough-border-red bg-ink-red text-white py-4 font-hand text-3xl font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="cursor-pointer mt-12 w-full rough-border-red bg-ink-red text-white py-4 font-hand text-3xl font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isQuizLoading ? <Loader2 size={24} className="animate-spin" /> : <Star size={24} />}
                 {isQuizLoading ? '쪽지 시험 출제 중...' : '다 외웠어! 복습 쪽지시험 고고'}
@@ -718,7 +754,7 @@ export default function App() {
                   </div>
                   <button 
                     onClick={handleNextQ}
-                    className="mt-8 w-full py-4 rough-border bg-ink-blue text-white font-hand text-3xl font-bold hover:bg-blue-800 transition-all flex items-center justify-center gap-2"
+                    className="cursor-pointer mt-8 w-full py-4 rough-border bg-ink-blue text-white font-hand text-3xl font-bold hover:bg-blue-800 transition-all flex items-center justify-center gap-2"
                   >
                     <span>{currentQ < quizData.length - 1 ? '다음 문제로 넘어가기' : '채점 결과 보기'}</span>
                     <ChevronRight size={24} />
@@ -747,13 +783,13 @@ export default function App() {
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={() => setStep('study')}
-                className="flex-1 py-4 rough-border font-hand text-3xl font-bold text-ink-blue hover:bg-blue-50 transition-colors bg-white"
+                className="cursor-pointer flex-1 py-4 rough-border font-hand text-3xl font-bold text-ink-blue hover:bg-blue-50 transition-colors bg-white"
               >
                 지문 다시 보기
               </button>
               <button 
                 onClick={resetToStart}
-                className="flex-1 py-4 rough-border-red bg-ink-red text-white font-hand text-3xl font-bold hover:bg-red-700 transition-colors"
+                className="cursor-pointer flex-1 py-4 rough-border-red bg-ink-red text-white font-hand text-3xl font-bold hover:bg-red-700 transition-colors"
               >
                 다른 지문 공부하기
               </button>
