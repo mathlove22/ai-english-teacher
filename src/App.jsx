@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PenTool, Star, Volume2, Loader2, ArrowRight, Check, X, ChevronRight, Monitor, Cloud, Image as ImageIcon } from 'lucide-react';
 
-// API Key setup (개발 환경의 .env 키가 없을 경우 브라우저 LocalStorage 활용)
+// API Key setup (사용자 지정 하드코딩 키)
+const activeApiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCBcvB0Ka5sBW26jcykaWF9x-xeyIxQ7LU";
 
 export default function App() {
-  const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const activeApiKey = import.meta.env.VITE_GEMINI_API_KEY || userApiKey;
-
   const [step, setStep] = useState('input');
   const [inputText, setInputText] = useState('');
-  const [detailLevel, setDetailLevel] = useState('기본');
+  
+  // 수준 및 강도 상태
+  const [targetLevel, setTargetLevel] = useState('일반(성인)');
+  const [detailLevel, setDetailLevel] = useState('일반');
+  
   const [containerWidth, setContainerWidth] = useState('max-w-[1000px]');
   const [imageFile, setImageFile] = useState(null);
   const [isExtractingText, setIsExtractingText] = useState(false);
@@ -36,7 +38,8 @@ export default function App() {
 
   const fileInputRef = useRef(null);
 
-  const detailOptions = ['기본', '자세히', '아주 자세히'];
+  const levelOptions = ['초등학생', '중학생', '고등학생', '일반(성인)'];
+  const detailOptions = ['일반', '자세히', '아주 자세히'];
 
   // 컴포넌트 마운트/언마운트 시 메모리 관리
   useEffect(() => {
@@ -69,27 +72,30 @@ export default function App() {
       return;
     }
     if (!activeApiKey) {
-      setError('앗! 위쪽에 구글 Gemini API 키를 입력해주셔야 서비스를 이용할 수 있어요!');
+      setError('앗! गु글 Gemini API 키가 설정되지 않았습니다.');
       return;
     }
     setError('');
     setStep('loading');
 
     let detailPrompt = "";
-    if (detailLevel === '기본') {
-      detailPrompt = "지문에 쓰인 단어나 숙어, 문법 등 핵심 표현 중 약 25% 수준으로 넉넉하게 추출하여 친절하게 설명해주세요.";
+    if (detailLevel === '일반') {
+      detailPrompt = "[일반 모드]: 일반적인 수준의 꼼꼼한 수업입니다. 지문의 핵심이 되는 단어, 숙어, 문법 표현들을 10~15개 이상 넉넉하게 추출하여 설명하세요.";
     } else if (detailLevel === '자세히') {
-      detailPrompt = "지문에 쓰인 단어나 표현 중 약 40% 수준으로 추출하여, 학생이 놓치기 쉬운 뉘앙스와 어원까지 꽤 자세하게 설명해주세요.";
+      detailPrompt = "[자세히 모드]: 일반 모드의 **2배 분량(20~30개 이상)**으로 훨씬 더 많은 단어를 추출하세요! 학생이 놓치기 쉬운 세세한 뉘앙스와 작은 표현들까지 무조건 전부 포함해서 샅샅이 파헤쳐주세요.";
     } else {
-      detailPrompt = "지문에 쓰인 단어와 숙어, 문장 구조의 약 60% 수준을 낱낱이 파헤쳐서 아주 촘촘하고 방대하게 모두 설명해주세요.";
+      detailPrompt = "[아주 자세히 모드]: 일반 모드의 **4배 분량(40~50개 이상)**으로 거의 모든 단어를 융단폭격하듯 폭발적으로 많이 추출해야 합니다! 지문에 쓰인 모든 단어와 숙어, 전치사, 관용구, 문장 구조를 낱낱이 분해해서 극도로 방대하고 치밀하게 모두 설명하세요. 설명이 길어지거나 토큰을 많이 소모하는 것을 절대 두려워하지 마세요. 양이 매우 많아야 만족합니다.";
     }
 
     const systemPrompt = `
-      당신은 학생들을 진심으로 아끼고 열정적인 10년 차 영어 선생님입니다. 
+      당신은 학생들을 진심으로 아끼고 열정적인 영어 선생님입니다. 
+      대상 학생의 수준은 [${targetLevel}]입니다. 이 수준의 학생이 모를 만한 단어나 알아두면 좋은 어휘를 우선적으로 집요하게 타겟팅하세요.
       말투는 아주 친절하고 다정하게, 공책에 펜으로 꼼꼼히 적어주는 듯한 과외 선생님 체("~해요", "~란다")를 사용하세요.
       
       주어진 영어 지문을 분석하세요.
+      [추출 분량 및 강도 규칙]
       ${detailPrompt}
+      
       전체 지문을 문장 단위로 나누어 자연스럽고 친절한 한국어 해석을 함께 제공하세요.
 
       결과는 반드시 아래 JSON 형식으로만 출력해야 합니다.
@@ -141,7 +147,7 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      setError('분석 중에 펜이 멈췄어요. API 키가 정확한지, 혹은 할당량을 초과했는지 확인해주세요!');
+      setError('분석 중에 펜이 멈췄어요. API 키 할당량을 초과했거나 응답이 너무 길어졌을 수 있어요!');
       setStep('input');
     }
   };
@@ -153,6 +159,7 @@ export default function App() {
     const learnedPhrases = analysisResult.map(i => i.phrase).join(', ');
     const systemPrompt = `
       당신은 다정한 영어 선생님입니다.
+      학생의 수준은 [${targetLevel}]입니다.
       학생이 방금 복습한 지문과 핵심 표현을 바탕으로 쪽지 시험(객관식 5문제)을 만들어주세요.
       문제(question)는 쉬운 한국어로, 보기(options)는 영어로 내도 좋습니다.
       빈칸 채우기, 의미 찾기, 문법 등 다양하게 섞어주세요.
@@ -203,7 +210,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     if (!activeApiKey) {
-      setError("사진을 분석하려면 먼저 위쪽에 API 키를 붙여넣어주세요!");
+      setError("사진을 분석하려면 API 키가 필요합니다.");
       return;
     }
 
@@ -382,8 +389,10 @@ export default function App() {
               return (
                 <span
                   key={i}
-                  className={`relative cursor-pointer transition-colors duration-200 
-                    ${activeItem === item ? 'marker-highlight font-bold' : 'border-b-2 border-ink-blue border-dashed hover:marker-highlight'}
+                  className={`relative cursor-pointer transition-all duration-200 px-1 rounded-sm mx-px
+                    ${activeItem === item 
+                      ? 'bg-yellow-400 font-bold text-ink-blue scale-105 inline-block shadow-sm z-10' 
+                      : 'bg-yellow-200/70 hover:bg-yellow-300 text-ink-blue border-b-2 border-red-400 border-dashed'}
                   `}
                   onMouseEnter={() => setActiveItem(item)}
                   onClick={(e) => speak(textToShow, e)}
@@ -489,39 +498,35 @@ export default function App() {
 
         {step === 'input' && (
           <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
-            {!import.meta.env.VITE_GEMINI_API_KEY && (
-              <div className="rough-border-gray bg-white/70 p-5 rounded-lg shadow-sm border-l-4 border-ink-red">
-                <label className="block font-sans text-lg font-bold mb-2 text-ink-blue whitespace-pre-wrap leading-relaxed">
-                  🔑 개인용 Google Gemini API Key 연결하기
+            
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div className="flex-1">
+                <label className="block font-hand text-3xl font-bold mb-3 flex items-center gap-2">
+                  <Star className="text-ink-red" />
+                  학생 수준 (어휘 타겟팅)
                 </label>
-                <input
-                  type="password"
-                  value={userApiKey}
-                  onChange={(e) => {
-                    setUserApiKey(e.target.value);
-                    localStorage.setItem('gemini_api_key', e.target.value);
-                  }}
-                  placeholder="AI.Studio에서 발급받은 본인의 API Key 문자열을 붙여넣으세요"
-                  className="rough-border w-full p-3 font-sans text-sm outline-none focus:ring-2 focus:ring-ink-red bg-white"
-                />
-                <p className="text-xs font-sans text-gray-500 mt-2">
-                  ※ 이 키는 통신을 위한 브라우저 내부에만 안전하게 임시 저장되며, 안심하고 사용하셔도 됩니다.
-                </p>
+                <select
+                  value={targetLevel}
+                  onChange={(e) => setTargetLevel(e.target.value)}
+                  className="rough-border w-full px-4 py-3 font-hand text-2xl outline-none focus:ring-2 focus:ring-ink-red bg-transparent cursor-pointer"
+                >
+                  {levelOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
               </div>
-            )}
 
-            <div>
-              <label className="block font-hand text-3xl font-bold mb-3 flex items-center gap-2">
-                <Star className="text-ink-red" />
-                선생님한테 설명은 얼마만큼 들을까요?
-              </label>
-              <select
-                value={detailLevel}
-                onChange={(e) => setDetailLevel(e.target.value)}
-                className="rough-border w-full md:w-2/3 px-4 py-3 font-hand text-2xl outline-none focus:ring-2 focus:ring-ink-red bg-transparent cursor-pointer"
-              >
-                {detailOptions.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <div className="flex-1">
+                <label className="block font-hand text-3xl font-bold mb-3 flex items-center gap-2">
+                  <Star className="text-ink-red" />
+                  선생님 설명 강도 (단어량)
+                </label>
+                <select
+                  value={detailLevel}
+                  onChange={(e) => setDetailLevel(e.target.value)}
+                  className="rough-border w-full px-4 py-3 font-hand text-2xl outline-none focus:ring-2 focus:ring-ink-red bg-transparent cursor-pointer"
+                >
+                  {detailOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
             </div>
 
             <div>
@@ -568,7 +573,7 @@ export default function App() {
           <div className="py-32 flex flex-col items-center justify-center space-y-6 animate-in fade-in">
             <Loader2 size={64} className="animate-spin text-ink-red" />
             <h2 className="font-hand text-4xl font-bold text-ink-blue">선생님이 지문을 꼼꼼히 읽어보는 중...</h2>
-            <p className="font-hand text-2xl text-gray-500">[{detailLevel}] 모드로 중요한 것들을 빨간 펜으로 밑줄 긋고 있어요!</p>
+            <p className="font-hand text-2xl text-gray-500">[{targetLevel}] 학생 수준에 맞는 [{detailLevel}] 강도로 밑줄을 긋고 있어요!</p>
           </div>
         )}
 
@@ -609,7 +614,7 @@ export default function App() {
                       {isPlayingAudio ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
                     </button>
                     <div className="flex-1">
-                      <p className="font-sans text-[22px] tracking-normal leading-[44px] mb-3 text-gray-900 font-medium">
+                      <p className="font-sans text-[22px] tracking-normal leading-[48px] mb-3 text-gray-900 font-medium">
                         {renderHighlightedSentence(sent.en)}
                       </p>
                       {showTranslation && (
@@ -672,7 +677,7 @@ export default function App() {
               ) : (
                 <div className="py-20 text-center opacity-60">
                   <p className="font-hand text-3xl leading-pitch-double">
-                    왼쪽 지문에서 파란 점선이 쳐진<br/>
+                    왼쪽 지문에서 노란색 형광펜이 칠해진<br/>
                     핵심 단어 위로 마우스를 올려보렴!
                   </p>
                 </div>
